@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>আল হিকমাহ পরিবার</title>
+<link href="https://fonts.googleapis.com/css2?family=Atma:wght@600;700&family=Tiro+Bangla&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f7f5;--card:#fff;--tx:#14231c;--mu:#5d6f66;--pr:#0f7b55;--pr2:#e2f3ec;--bd:#d9e3de;--rd:#c0392b;--am:#b7791f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:"Hind Siliguri",system-ui,sans-serif;font-size:16px;line-height:1.5;padding-bottom:76px}
+header{background:linear-gradient(135deg,#0b6b4a,#139a6c);color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 10px;text-align:center}
+header h1{margin:0;font-family:"Atma","Hind Siliguri",sans-serif;font-style:normal;font-weight:700;font-size:34px;line-height:1.7;letter-spacing:.5px;text-shadow:0 2px 0 rgba(0,0,0,.18)}
+header:after{content:"";display:block;width:56px;height:3px;border-radius:3px;background:#f2c94c;margin:0 auto}
+main{padding:12px 14px;max-width:560px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 8px;font-size:18px;font-weight:600}
+.big{font-size:30px;font-weight:700;color:var(--pr);line-height:1.5}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border:0}
+.mu{color:var(--mu);font-size:14px;font-family:"Tiro Bangla","Hind Siliguri",serif}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--pr2);color:var(--pr)}
+.tag.no{background:#f9e0dc;color:var(--rd)}.tag.wait{background:#f8ecd2;color:var(--am)}
+select,input{font:inherit;color:var(--tx);background:#fff;border:1px solid var(--bd);border-radius:10px;padding:9px 10px;width:100%}
+button{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(--pr);color:#fff;cursor:pointer}
+button.g{background:var(--pr2);color:var(--pr)}button.r{background:var(--rd)}
+button.w{width:100%;margin-top:14px}
+label{display:block;margin:10px 0 4px;font-size:14px;color:var(--mu)}
+.num{display:flex;gap:8px;align-items:center;margin:6px 0}.num b{flex:1}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--bd);display:none;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;color:var(--mu);border-radius:0;padding:12px 2px;font-size:13px}
+nav button.on{color:var(--pr);font-weight:700}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#14231c;color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;display:none;z-index:9}
+</style></head>
+<body>
+<header><h1>আল হিকমাহ পরিবার</h1></header>
+<main id="app"></main><nav id="nav"></nav><div class="toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ===== এখানে Firebase থেকে পাওয়া কনফিগ বসান =====
+const CFG={apiKey:"AIzaSyBerY0EPENimYaAL6-A67NZ31SManjImp4",authDomain:"alhikmah-family.firebaseapp.com",projectId:"alhikmah-family",storageBucket:"alhikmah-family.firebasestorage.app",messagingSenderId:"1094673205545",appId:"1:1094673205545:web:2d073da68f2a8d08c08f38"};
+// ==================================================
+firebase.initializeApp(CFG);
+const A=firebase.auth(),DB=firebase.firestore(),FV=firebase.firestore.FieldValue;
+const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const N=new Date(),CUR=N.getFullYear()*12+N.getMonth(),TODAY=new Date(N-N.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const RL={admin:'অ্যাডমিন',senior:'কমিটি',general:'সাধারণ সদস্য'},TL={small:'ছোট হার',big:'বড় হার'};
+const $=i=>document.getElementById(i),v=i=>$(i).value;
+const d=n=>String(n).replace(/\d/g,c=>'০১২৩৪৫৬৭৮৯'[c]);
+const bn=n=>'৳ '+d(Number(n).toLocaleString('en-US'));
+const ml=i=>MN[i%12]+' '+d(Math.floor(i/12));
+const fd=s=>{const p=s.split('-');return d(+p[2])+' '+MN[p[1]-1]+' '+d(p[0])};
+const em=(p,n)=>p.replace(/\D/g,'')+(n?'.'+n:'')+'@alhikmah.app';
+const mo=(n,sel)=>Array.from({length:n},(_,k)=>`<option value="${CUR-k}"${CUR-k==sel?' selected':''}>${ml(CUR-k)}</option>`).join('');
+const tag=p=>p?'<span class="tag">জমা হয়েছে</span>':'<span class="tag no">বাকি</span>';
+const toast=s=>{const e=$('toast');e.textContent=s;e.style.display='block';setTimeout(()=>e.style.display='none',2200)};
+const cp=n=>navigator.clipboard.writeText(n).then(()=>toast('নাম্বার কপি হয়েছে'),()=>toast(n));
+const START=24309,PM={};let RT=null;
+const mr=(a,b,sel,asc)=>{const L=[];for(let i=a;i<=b;i++)L.push(`<option value="${i}"${i==sel?' selected':''}>${ml(i)}</option>`);return(asc?L:L.reverse()).join('')};
+let me=null,S={numbers:{},perms:{}},tab=0,viewM=null,booting=false;const RQ={};
+
+const get=async(q)=>(await q.get()).docs.map(x=>({id:x.id,...x.data()}));
+const pays=uid=>get(uid?DB.collection('payments').where('uid','==',uid):DB.collection('payments'));
+const mems=async()=>(await get(DB.collection('members'))).sort((a,b)=>a.name.localeCompare(b.name));
+
+const tierOf=m=>m.tier||(m.role=='general'?'small':'big');
+const tierAt=(m,i)=>m.th&&m.th.length?m.th.reduce((t,x)=>x.from<=i?x.tier:t,m.th[0].tier):tierOf(m);
+const rate=(m,i)=>{const R=S.rates||[{from:0,general:m.fee||70,senior:m.fee||120}];let r=R[0];R.forEach(x=>{if(x.from<=i)r=x});return tierAt(m,i)=='small'?r.general:r.senior};
+function calc(m,P,x){let pool=P.reduce((s,y)=>s+y.amount,0)+(x||0);const rows=[];
+for(let i=m.js;i<=CUR;i++){const f=rate(m,i),a=Math.min(pool,f);pool-=a;rows.push({i,f,a})}
+for(let j=CUR+1;pool>0&&j<CUR+120;j++){const f=rate(m,j),a=Math.min(pool,f);pool-=a;rows.push({i:j,f,a,adv:1})}
+return{rows}}
+function st(m,P){const c=calc(m,P,0).rows,cu=c.filter(r=>!r.adv),ad=c.filter(r=>r.adv),l=cu[cu.length-1];let first=null;P.forEach(x=>{if(!first||x.date<first)first=x.date});
+return{p:P.reduce((s,x)=>s+x.amount,0),first,rows:c,du:cu.reduce((s,r)=>s+r.f-r.a,0),adv:ad.reduce((s,r)=>s+r.a,0),lastAdv:ad.length?ad[ad.length-1].i:0,paidM:cu.filter(r=>r.a>=r.f).length,n:cu.length,curOk:!l||l.a>=l.f}}
+function hist(m,P,adm){const s=st(m,P),R=s.rows.slice().reverse(),L=P.slice().sort((a,b)=>b.date.localeCompare(a.date));
+return `<div class="card"><h2>${m.name}</h2><div class="mu">সদস্য হয়েছেন: ${ml(m.js)} · এখনকার মাসিক হার ${bn(rate(m,CUR))}</div>
+<div class="row"><span>প্রথম জমা দিয়েছেন</span><b>${s.first?fd(s.first):'এখনো নেই'}</b></div>
+<div class="row"><span>মোট জমা</span><b style="color:var(--pr)">${bn(s.p)}</b></div>
+<div class="row"><span>মোট বাকি</span><b style="color:var(--rd)">${bn(s.du)}</b></div>
+<div class="row"><span>পরিশোধিত মাস</span><b>${d(s.paidM)} / ${d(s.n)}</b></div>${s.adv?`<div class="row"><span>অগ্রিম জমা</span><b>${bn(s.adv)} (${ml(s.lastAdv)} পর্যন্ত)</b></div>`:''}</div>
+<div class="card"><h2>মাসভিত্তিক হিসাব</h2>${R.map(x=>`<div class="row"><span>${ml(x.i)}${x.adv?' <span class="mu">(অগ্রিম)</span>':''}</span><span style="text-align:right">${x.a>=x.f?'<span class="tag">জমা</span>':x.a>0?'<span class="tag wait">আংশিক</span>':'<span class="tag no">বাকি</span>'}<div class="mu">${bn(x.a)} / ${bn(x.f)}</div></span></div>`).join('')}</div>
+<div class="card"><h2>জমার তালিকা</h2>${L.length?L.map(x=>`<div class="row"><span>${fd(x.date)}<div class="mu">${x.via}${x.note?' · '+x.note:''}</div></span><span style="text-align:right"><b>${bn(x.amount)}</b>${adm?`<div><button class="g" style="padding:2px 8px;font-size:12px" onclick="delP('${x.id}','${m.id}',${x.amount})">মুছুন</button></div>`:''}</span></div>`).join(''):'<div class="mu">এখনো কোনো জমা নেই</div>'}</div>`}
+async function delP(pid,uid,amt){if(!confirm('এই জমার এন্ট্রি মুছবেন? ফান্ড থেকেও বাদ যাবে।'))return;try{const b=DB.batch();b.delete(DB.doc('payments/'+pid));b.update(DB.doc('summary/fund'),{income:FV.increment(-amt)});await b.commit();toast('মুছে গেছে');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function fundCard(){try{const s=(await DB.doc('summary/fund').get()).data();return `<div class="card"><h2>সংগঠনের মোট ফান্ড</h2><div class="big">${bn(s.income-s.expense)}</div><div class="mu">মোট জমা ${bn(s.income)} − মোট খরচ ${bn(s.expense)}</div></div>`}catch(e){return ''}}
+async function expCard(){try{const E=(await get(DB.collection('expenses'))).sort((a,b)=>b.date.localeCompare(a.date));return `<div class="card"><h2>খরচের হিসাব</h2>${E.length?E.map(e=>`<div class="row"><span>${e.title}<div class="mu">${fd(e.date)}</div></span><b>${bn(e.amount)}</b></div>`).join(''):'<div class="mu">এখনো কোনো খরচ নেই</div>'}</div>`}catch(e){return ''}}
+async function mine(){const P=await pays(me.id),s=st(me,P),w=(await get(DB.collection('requests').where('uid','==',me.id))).some(r=>r.status=='pending');
+return `<div class="card"><h2>আমার হিসাব (${ml(CUR)})</h2><div class="row"><span>এখনকার মাসিক হার</span><b>${bn(rate(me,CUR))}</b></div><div class="row"><span>এই মাসের অবস্থা</span>${w?'<span class="tag wait">যাচাই চলছে</span>':tag(s.curOk)}</div><div class="row"><span>মোট জমা</span><b>${bn(s.p)}</b></div><div class="row"><span>মোট বাকি</span><b style="color:var(--rd)">${bn(s.du)}</b></div>${s.adv?`<div class="row"><span>অগ্রিম জমা</span><b>${bn(s.adv)}</b></div>`:''}</div>`}
+const myHist=async()=>hist(me,await pays(me.id));
+
+async function list(){const[M,P]=await Promise.all([mems(),pays()]);return `<div class="card"><h2>সকল সদস্য</h2><div class="mu">নামে ট্যাপ করলে বিস্তারিত দেখা যাবে।</div>${M.map(m=>{const s=st(m,P.filter(x=>x.uid==m.id));return `<div class="row" onclick="V('${m.id}')" style="cursor:pointer"><span>${m.name}<div class="mu">${me.role=='admin'?RL[m.role]+' · '+TL[tierOf(m)]+' · ':''}বাকি ${bn(s.du)}</div></span>${tag(s.curOk)}</div>`}).join('')}</div>`}
+async function det(adm){const m={id:viewM,...(await DB.doc('members/'+viewM).get()).data()};return `<button class="g" style="margin-bottom:10px" onclick="V(null)">← সদস্য তালিকা</button>`+hist(m,await pays(viewM),adm)+(adm?editCards(m):'')}
+function editCards(m){const self=m.id==me.id,sel=r=>m.role==r?' selected':'',tr=t=>tierOf(m)==t?' selected':'';
+return `<div class="card"><h2>তথ্য সংশোধন</h2><label>নাম</label><input id="en" value="${m.name}">${self?'':`<label>অ্যাক্সেস (কে কী দেখবে)</label><select id="er"><option value="general"${sel('general')}>সাধারণ সদস্য</option><option value="senior"${sel('senior')}>কমিটি</option><option value="admin"${sel('admin')}>অ্যাডমিন</option></select>`}<label>চাঁদার হার ধরন</label><select id="et"><option value="small"${tr('small')}>ছোট হার</option><option value="big"${tr('big')}>বড় হার</option></select><label>হার বদলালে কোন মাস থেকে কার্যকর</label><select id="etf">${mr(START,CUR+1,CUR)}</select><div class="mu">হার না বদলালে এটা ধরা হবে না।</div><label>কোন মাস থেকে সদস্য</label><select id="ej">${mr(Math.min(START,m.js),CUR,m.js)}</select><button class="w" onclick="saveM('${m.id}')">সংরক্ষণ করুন</button></div>`+(`<div class="card"><h2>ফোন নাম্বার / পিন বদল</h2>${self?'<div class="mu" style="color:var(--am)">নিজের নাম্বার বদলালে নতুন নাম্বার দিয়ে আবার লগইন করতে হবে।</div>':''}<div class="mu">পিন ভুলে গেলে বা নাম্বার বদলাতে এখানে নতুন দিন, তারপর সদস্যকে নতুন পিন জানান। আগের সব হিসাব ঠিক থাকবে।</div><label>ফোন নাম্বার</label><input id="cp" type="tel" value="${m.phone}"><label>নতুন পিন (কমপক্ষে ৬ সংখ্যা)</label><input id="ck" type="text" inputmode="numeric"><button class="w" onclick="credM('${m.id}')">নাম্বার/পিন বদলান</button></div>`)+(self?'':`<div class="card"><button class="r w" style="margin-top:0" onclick="delM('${m.id}')">এই সদস্যকে মুছুন</button></div>`)}
+async function saveM(id){const o={name:v('en'),js:+v('ej')};if($('er'))o.role=v('er');if(!o.name)return toast('নাম দিন');
+try{const m=(await DB.doc('members/'+id).get()).data(),nt=v('et'),ot=tierOf(m);o.tier=nt;if(nt!=ot){const f=+v('etf');o.th=(m.th&&m.th.length?m.th:[{from:0,tier:ot}]).filter(x=>x.from<f).concat({from:f,tier:nt})}
+await DB.doc('members/'+id).update(o);if(id==me.id)me.name=o.name;toast('সংরক্ষিত হয়েছে ✓');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function credM(id){const p=v('cp').replace(/\D/g,''),k=v('ck');if(p.length<11||k.length<6)return toast('ঠিক নাম্বার ও ৬+ সংখ্যার পিন দিন');
+try{const old=(await DB.doc('members/'+id).get()).data();if(p!=old.phone.replace(/\D/g,'')&&(await get(DB.collection('members').where('phone','==',p))).length)return toast('এই নাম্বারে অন্য সদস্য আছে');const sec=firebase.apps.find(a=>a.name=='sec')||firebase.initializeApp(CFG,'sec');
+let ver=p==old.phone.replace(/\D/g,'')?(old.v||0)+1:0,c=null;
+while(!c&&ver<5){try{c=await sec.auth().createUserWithEmailAndPassword(em(p,ver),k)}catch(e){if(e.code!='auth/email-already-in-use')return toast('হয়নি: '+e.code);ver++}}
+if(!c)return toast('এই নাম্বারে অনেকবার বদল হয়েছে');
+await sec.auth().signOut();const nid=c.user.uid;
+const[P,R]=await Promise.all([get(DB.collection('payments').where('uid','==',id)),get(DB.collection('requests').where('uid','==',id))]);
+const b=DB.batch();b.set(DB.doc('members/'+nid),{...old,phone:p,v:ver});b.delete(DB.doc('members/'+id));
+P.forEach(x=>b.update(DB.doc('payments/'+x.id),{uid:nid}));R.forEach(x=>b.update(DB.doc('requests/'+x.id),{uid:nid}));
+await b.commit();if(id==me.id){toast('বদল হয়েছে ✓ নতুন নাম্বার/পিন দিয়ে আবার ঢুকুন');A.signOut();return}viewM=nid;toast('বদল হয়েছে ✓ সদস্যকে নতুন পিন জানান');draw()}catch(e){toast('হয়নি: '+(e.code||e.message))}}
+const V=id=>{viewM=id;draw()},T=i=>{tab=i;viewM=null;draw()};
+
+async function send(){const n=S.numbers||{};return `<div class="card"><h2>টাকা পাঠান</h2><div class="mu">নাম্বার কপি করে বিকাশ/নগদ/রকেট অ্যাপে গিয়ে পাঠান।</div>${Object.keys(n).map(k=>`<div class="num"><span>${k}</span><b>${n[k]||'—'}</b><button class="g" onclick="cp('${n[k]}')">কপি</button></div>`).join('')}</div>
+<div class="card"><h2>পাঠানোর পর এখানে জানান</h2><label>কত টাকা পাঠিয়েছেন (একসাথে কয়েক মাস বা অগ্রিমও দিতে পারেন)</label><input id="pva" type="number" oninput="this.dataset.t=1;pv()"><div id="pvb"></div><label>কোন মাধ্যমে</label><select id="me">${Object.keys(n).map(k=>`<option>${k}</option>`).join('')}</select><label>যে নাম্বার থেকে পাঠিয়েছেন</label><input id="fr" type="tel" placeholder="01XXXXXXXXX"><button class="w" onclick="sub()">রিকুয়েস্ট পাঠান</button></div>`}
+async function sub(){const a=+v('pva'),f=v('fr');if(!a||f.length<11)return toast('টাকা ও নাম্বার ঠিকভাবে দিন');
+try{await DB.collection('requests').add({uid:me.id,amount:a,via:v('me'),from:f,date:TODAY,status:'pending'});toast('রিকুয়েস্ট গেছে, অ্যাডমিন যাচাই করবেন');tab=0;draw()}catch(e){toast('পাঠানো যায়নি')}}
+async function pv(){const id=$('pvm')?v('pvm'):me.id,m=id==me.id?me:PM[id],P=await pays(id),A0=$('pva'),amt=+A0.value||0;
+const b=calc(m,P,0).rows,dr=b.filter(r=>!r.adv&&r.a<r.f),due=dr.reduce((s,r)=>s+r.f-r.a,0);
+if(!A0.dataset.t&&!A0.value&&due){A0.value=due;return pv()}
+const a=calc(m,P,amt).rows,nd=a.filter(r=>!r.adv).reduce((s,r)=>s+r.f-r.a,0),ad=a.filter(r=>r.adv&&r.a>0);
+const q=(t,x)=>`<button class="g" style="padding:6px 10px;margin:4px 4px 0 0" onclick="qa(${x})">${t}</button>`;
+$('pvb').innerHTML=`<div class="mu">বাকি এখন: <b>${bn(due)}</b>${dr.length?' · '+(dr.length>3?d(dr.length)+' মাস':dr.map(r=>ml(r.i)).join(', ')):''}</div>`+(due?q('সব বাকি '+bn(due),due):'')+q('+১ মাস অগ্রিম',due+rate(m,CUR+1))+q('+৩ মাস অগ্রিম',due+rate(m,CUR+1)+rate(m,CUR+2)+rate(m,CUR+3))+(amt>0?`<div class="mu" style="margin-top:8px;color:var(--pr)">এই টাকা দিলে: বাকি ${bn(nd)}${ad.length?' · অগ্রিম '+d(ad.length)+' মাস ('+ml(ad[0].i)+(ad.length>1?' – '+ml(ad[ad.length-1].i):'')+')':''}</div>`:'')}
+const qa=x=>{const e=$('pva');e.value=x;e.dataset.t=1;pv()};
+async function reqs(){const[R,M,P]=await Promise.all([get(DB.collection('requests').where('status','==','pending')),mems(),pays()]);
+return `<div class="card"><h2>অপেক্ষমাণ রিকুয়েস্ট (${d(R.length)})</h2>${R.length?R.map(r=>{RQ[r.id]=r;const m=M.find(x=>x.id==r.uid)||{name:'?',js:CUR,role:'general'},s=st(m,P.filter(x=>x.uid==r.uid));return `<div style="padding:10px 0;border-bottom:1px solid var(--bd)"><b>${m.name}</b><div class="mu">${r.via} · ${r.from} · এখন বাকি ${bn(s.du)}</div><div class="num"><span>টাকা:</span><input id="e${r.id}" type="number" value="${r.amount}"></div><div style="display:flex;gap:8px;margin-top:6px"><button style="flex:1" onclick="ok('${r.id}')">অ্যাকসেপ্ট</button><button class="r" onclick="no('${r.id}')">বাতিল</button></div></div>`}).join(''):'<div class="mu">কোনো নতুন রিকুয়েস্ট নেই</div>'}</div>`}
+async function addPay(uid,amount,date,via,reqId,note){const b=DB.batch(),o={uid,amount,date,via,by:me.id};if(note)o.note=note;b.set(DB.collection('payments').doc(),o);b.update(DB.doc('summary/fund'),{income:FV.increment(amount)});if(reqId)b.update(DB.doc('requests/'+reqId),{status:'accepted',amount});await b.commit()}
+async function ok(id){const r=RQ[id],a=+v('e'+id);if(!a)return toast('টাকার অঙ্ক দিন');try{await addPay(r.uid,a,TODAY,r.via,id);toast('ফান্ডে যুক্ত হয়েছে ✓');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function no(id){await DB.doc('requests/'+id).update({status:'rejected'});draw()}
+
+async function cash(){const M=await mems();M.forEach(m=>PM[m.id]=m);return `<div class="card"><h2>হাতে পাওয়া টাকা যোগ করুন</h2><label>সদস্য</label><select id="pvm" onchange="$('pva').value='';$('pva').dataset.t='';pv()">${M.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select><label>টাকা (একসাথে কয়েক মাস বা অগ্রিমও হবে)</label><input id="pva" type="number" oninput="this.dataset.t=1;pv()"><div id="pvb"></div><label>তারিখ</label><input id="cd" type="date" value="${TODAY}"><label>নোট (ঐচ্ছিক)</label><input id="cn" placeholder="যেমন: জানুয়ারি-মার্চ + ২ মাস অগ্রিম"><button class="w" onclick="addc()">জমা যোগ করুন</button></div>`}
+async function addc(){const a=+v('pva'),dt=v('cd');if(!a||!dt)return toast('টাকা ও তারিখ দিন');try{await addPay(v('pvm'),a,dt,'হাতে নগদ',null,v('cn'));toast('জমা যোগ হয়েছে ✓');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function admMem(){if(viewM)return det(1);return await list()+`<div class="card"><h2>নতুন সদস্য যোগ করুন</h2><label>নাম</label><input id="nn"><label>ফোন নাম্বার</label><input id="np" type="tel"><label>প্রাথমিক পিন (কমপক্ষে ৬ সংখ্যা)</label><input id="nk" type="text" inputmode="numeric"><label>অ্যাক্সেস (কে কী দেখবে)</label><select id="nr" onchange="$('nt').value=this.value=='general'?'small':'big'"><option value="general">সাধারণ সদস্য</option><option value="senior">কমিটি</option><option value="admin">অ্যাডমিন</option></select><label>চাঁদার হার ধরন</label><select id="nt"><option value="small">ছোট হার</option><option value="big">বড় হার</option></select><label>কোন মাস থেকে</label><select id="nj">${mr(START,CUR,CUR)}</select><button class="w" onclick="addm()">সদস্য যোগ করুন</button></div>`}
+async function addm(){const n=v('nn'),p=v('np').replace(/\D/g,''),k=v('nk');if(!n||p.length<11||k.length<6)return toast('নাম, নাম্বার ও ৬+ সংখ্যার পিন দিন');
+const sec=firebase.apps.find(a=>a.name=='sec')||firebase.initializeApp(CFG,'sec');
+try{if((await get(DB.collection('members').where('phone','==',p))).length)return toast('এই নাম্বারে সদস্য আছে');let ver=0,c=null;
+while(!c&&ver<5){try{c=await sec.auth().createUserWithEmailAndPassword(em(p,ver),k)}catch(e){if(e.code!='auth/email-already-in-use')return toast('হয়নি: '+e.code);ver++}}
+if(!c)return toast('এই নাম্বার বহুবার ব্যবহার হয়েছে');
+await sec.auth().signOut();await DB.doc('members/'+c.user.uid).set({name:n,phone:p,role:v('nr'),tier:v('nt'),fee:rate({role:v('nr'),tier:v('nt')},CUR),js:+v('nj'),v:ver});toast('সদস্য যোগ হয়েছে ✓');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function delM(id){if(!confirm('সত্যিই এই সদস্যকে মুছবেন?'))return;const all=confirm('এর সব জমার রেকর্ডও মুছে ফান্ড থেকে বাদ দিতে চান?\n\nOK = হ্যাঁ, বাদ দিন\nCancel = রেকর্ড ফান্ডে রেখে দিন');
+try{const b=DB.batch();b.delete(DB.doc('members/'+id));if(all){const[P,R]=await Promise.all([get(DB.collection('payments').where('uid','==',id)),get(DB.collection('requests').where('uid','==',id))]);let t=0;P.forEach(x=>{t+=x.amount;b.delete(DB.doc('payments/'+x.id))});R.forEach(x=>b.delete(DB.doc('requests/'+x.id)));if(t)b.update(DB.doc('summary/fund'),{income:FV.increment(-t)})}
+await b.commit();viewM=null;toast('মুছে ফেলা হয়েছে');draw()}catch(e){toast('হয়নি: '+e.code)}}
+
+async function admExp(){return await expCard()+`<div class="card"><h2>নতুন খরচ যোগ করুন</h2><label>কী কাজে</label><input id="xt"><label>কত টাকা</label><input id="xa" type="number"><label>তারিখ</label><input id="xd" type="date" value="${TODAY}"><button class="w" onclick="addx()">যোগ করুন</button></div>`}
+async function addx(){const t=v('xt'),a=+v('xa');if(!t||!a)return toast('সব ঘর পূরণ করুন');const b=DB.batch();b.set(DB.collection('expenses').doc(),{title:t,amount:a,date:v('xd')});b.update(DB.doc('summary/fund'),{expense:FV.increment(a)});try{await b.commit();toast('খরচ যোগ হয়েছে');draw()}catch(e){toast('হয়নি')}}
+
+async function sett0(){const sw=(k,l)=>`<div class="sw"><span>${l}</span><button class="${S.perms[k]?'':'g'}" onclick="perm('${k}')">${S.perms[k]?'চালু':'বন্ধ'}</button></div>`;
+return `<div class="card"><h2>সাধারণ সদস্য কী দেখতে পারবে</h2><div class="mu">নিজের তথ্য ও হিস্ট্রি সবসময় দেখতে পাবে।</div>${sw('fund','মোট ফান্ড')}${sw('exp','খরচের হিসাব')}</div><div class="card"><h2>আমার পেমেন্ট নাম্বার</h2>${Object.keys(S.numbers).map(k=>`<label>${k}</label><input value="${S.numbers[k]}" onchange="num('${k}',this.value)">`).join('')}</div>`}
+const sett=async()=>await sett0()+rtCard();
+function rtCard(){if(!RT)RT=S.rates.map(x=>({...x}));return `<div class="card"><h2>চাঁদার হার (মাস অনুযায়ী)</h2><div class="mu">কোন মাস থেকে কত টাকা হার, এখানে দিন। হার বাড়ালে নতুন লাইন যোগ করুন, আগের মাসের হিসাব আগের হারেই থাকবে।</div>${RT.map((x,i)=>`<div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:4px"><label>কোন মাস থেকে</label><select id="rm${i}">${mr(START,CUR+12,x.from,1)}</select><div style="display:flex;gap:8px"><div style="flex:1"><label>ছোট হার</label><input id="rg${i}" type="number" value="${x.general}"></div><div style="flex:1"><label>বড় হার</label><input id="rs${i}" type="number" value="${x.senior}"></div></div>${i?`<button class="r" style="margin-top:8px" onclick="rtDel(${i})">এই লাইন মুছুন</button>`:''}</div>`).join('')}<div style="display:flex;gap:8px;margin-top:6px"><button class="g w" onclick="rtAdd()">+ নতুন হার</button><button class="w" onclick="rtSave()">সংরক্ষণ</button></div></div>`}
+function rtRead(){RT.forEach((x,i)=>{x.from=+v('rm'+i);x.general=+v('rg'+i);x.senior=+v('rs'+i)})}
+function rtAdd(){rtRead();const l=RT[RT.length-1];RT.push({from:Math.max(CUR,l.from+1),general:l.general,senior:l.senior});draw()}
+function rtDel(i){rtRead();RT.splice(i,1);draw()}
+async function rtSave(){rtRead();const R=RT.map(x=>({...x})).sort((a,b)=>a.from-b.from);if(R.some((x,i)=>!(x.general>0&&x.senior>0)||(i&&x.from==R[i-1].from)))return toast('হার ঠিক দিন, একই মাস দুইবার নয়');
+try{await DB.doc('settings/app').update({rates:R});S.rates=R;RT=null;toast('হার সংরক্ষিত ✓');draw()}catch(e){toast('হয়নি: '+e.code)}}
+async function perm(k){S.perms[k]=!S.perms[k];await DB.doc('settings/app').update({['perms.'+k]:S.perms[k]});draw()}
+async function num(k,x){S.numbers[k]=x;await DB.doc('settings/app').update({['numbers.'+k]:x});toast('সেভ হয়েছে')}
+
+async function draw(){if(!me)return;const r=me.role;let L,F;
+if(r=='admin'){L=['রিকুয়েস্ট','সদস্য','হাতে জমা','খরচ','সেটিং'];F=[async()=>await reqs()+await fundCard(),admMem,cash,admExp,sett]}
+else if(r=='senior'){L=['হোম','সদস্য','আমার হিস্ট্রি','টাকা পাঠান'];F=[async()=>await mine()+await fundCard()+await expCard(),async()=>viewM?det():list(),myHist,send]}
+else{L=['হোম','আমার হিস্ট্রি','টাকা পাঠান'];F=[async()=>await mine()+(S.perms.fund?await fundCard():'')+(S.perms.exp?await expCard():''),myHist,send]}
+$('nav').style.display='flex';$('nav').innerHTML=L.map((x,i)=>`<button class="${i==tab?'on':''}" onclick="T(${i})">${x}</button>`).join('');
+$('app').innerHTML='<div class="mu" style="padding:20px;text-align:center">লোড হচ্ছে…</div>';
+try{$('app').innerHTML=await F[tab]()+(((r=='admin'&&tab==4)||(r!='admin'&&tab==0))?pinCard():'')+`<p style="text-align:center"><button class="g" onclick="A.signOut()">লগআউট (${me.name})</button></p>`;if($('pvb'))pv()}catch(e){$('app').innerHTML='<div class="card">তথ্য আনা যায়নি। ইন্টারনেট ও নিরাপত্তা নিয়ম (rules) ঠিক আছে কিনা দেখুন।<br><span class="mu">'+(e.code||e.message)+'</span></div>'}}
+
+function kb(){const e=$('lk');e.blur();e.inputMode=e.inputMode=='numeric'?'text':'numeric';setTimeout(()=>e.focus(),60);toast(e.inputMode=='text'?'এখন অক্ষর লেখা যাবে':'এখন শুধু সংখ্যা')}
+const pinCard=()=>`<div class="card"><h2>আমার পিন বদলান</h2><label>নতুন পিন (কমপক্ষে ৬ সংখ্যা)</label><input id="np2" type="password" inputmode="numeric"><button class="w" onclick="myPin()">পিন বদলান</button></div>`;
+async function myPin(){const k=v('np2');if(k.length<6)return toast('কমপক্ষে ৬ সংখ্যা দিন');try{await A.currentUser.updatePassword(k);toast('পিন বদলেছে ✓');$('np2').value=''}catch(e){toast(e.code=='auth/requires-recent-login'?'লগআউট করে আবার ঢুকে চেষ্টা করুন':'হয়নি: '+e.code)}}
+function loginUI(){$('nav').style.display='none';$('app').innerHTML=`<div class="card"><h2>লগইন</h2><label>ফোন নাম্বার</label><input id="lp" type="tel" placeholder="01XXXXXXXXX"><label>পিন</label><input id="lk" type="password" inputmode="numeric" placeholder="৬ সংখ্যার পিন"><button class="w" onclick="login()">প্রবেশ করুন</button><div style="text-align:center;margin-top:10px"><a href="#" class="mu" onclick="kb();return false">পাসওয়ার্ডে অক্ষর আছে? এখানে চাপুন</a></div></div>${location.hash=='#setup'?'<p style="text-align:center"><button class="g" onclick="setupUI()">প্রথমবার অ্যাডমিন সেটআপ</button></p>':''}`}
+async function login(){const p=v('lp'),k=v('lk');for(let i=0;i<5;i++){try{await A.signInWithEmailAndPassword(em(p,i),k);return}catch(e){if(e.code=='auth/too-many-requests')return toast('অনেকবার চেষ্টা হয়েছে, কিছুক্ষণ পর আবার করুন')}}toast('নাম্বার বা পিন ভুল')}
+function setupUI(){$('app').innerHTML=`<div class="card"><h2>প্রথম অ্যাডমিন তৈরি</h2><div class="mu">এটি শুধু একবারই কাজ করবে, সংগঠনের অ্যাডমিন হিসেবে।</div><label>আপনার নাম</label><input id="n"><label>ফোন নাম্বার</label><input id="p" type="tel"><label>পিন (কমপক্ষে ৬ সংখ্যা)</label><input id="k" type="password" inputmode="numeric"><button class="w" onclick="setup()">অ্যাডমিন তৈরি করুন</button></div><p style="text-align:center"><button class="g" onclick="loginUI()">← লগইনে ফিরুন</button></p>`}
+async function setup(){if(!v('n')||v('p').length<11||v('k').length<6)return toast('সব ঘর ঠিকভাবে পূরণ করুন');booting=true;
+try{const c=await A.createUserWithEmailAndPassword(em(v('p')),v('k'));
+await DB.doc('members/'+c.user.uid).set({name:v('n'),phone:v('p'),role:'admin',fee:120,js:CUR});
+await DB.doc('settings/app').set({numbers:{'বিকাশ':'','নগদ':'','রকেট':''},perms:{fund:true,exp:true}});
+await DB.doc('summary/fund').set({income:0,expense:0});booting=false;load(c.user)}catch(e){booting=false;toast('সেটআপ হয়নি: '+e.code)}}
+async function load(u){try{const s=await DB.doc('members/'+u.uid).get();if(!s.exists){$('nav').style.display='none';$('app').innerHTML='<div class="card">এই নাম্বার ('+d(u.email.split('@')[0])+') এখনো সদস্য তালিকায় নেই। সঠিক নাম্বার দিয়ে ঢুকুন, অথবা অ্যাডমিনকে জানান।</div><p style="text-align:center"><button class="g" onclick="A.signOut()">লগআউট</button></p>';return}
+me={id:u.uid,...s.data()};const t=await DB.doc('settings/app').get();if(t.exists)S={numbers:{},perms:{},...t.data()};if(me.role=='admin'&&!S.rates){S.rates=[{from:START,general:70,senior:120}];DB.doc('settings/app').update({rates:S.rates}).catch(()=>{})}tab=0;viewM=null;draw()}catch(e){toast('লোড হয়নি: '+e.code)}}
+A.onAuthStateChanged(u=>{if(booting)return;if(!u){me=null;loginUI()}else load(u)});
+</script></body></html>
